@@ -1,0 +1,12 @@
+env: prod
+log: /tmp/app.log
+
+debug:
+  addr: localhost:10021
+
+http:
+  addr: localhost:10022
+
+sqlite:
+  init: configs/default.sql
+  file: data/db.sqlite
