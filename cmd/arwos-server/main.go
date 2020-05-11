@@ -20,6 +20,8 @@ package main
 import (
 	"flag"
 
+	"arwos-server/internal/dockers"
+
 	"github.com/deweppro/core/pkg/provider/db/sqlite"
 
 	"arwos-server/internal/jsonrpc"
@@ -40,6 +42,7 @@ func main() {
 			&debug.ConfigDebug{},
 			&sqlite.ConfigSQLite{},
 			&jsonrpc.ConfigHttp{},
+			&dockers.ConfigDockers{},
 		),
 		app.NewInterfaces().Add(
 			// providers
@@ -48,6 +51,7 @@ func main() {
 			// modules
 			jsonrpc.NewHTTPModule,
 			jsonrpc.NewJRPCModule,
+			dockers.NewDockersModule,
 		),
 	).PidFile(*pidfile).Run()
 }

@@ -17,3 +17,5 @@
 .idea
 configs/config.yaml
 *.pid
+*.sqlite
+*.tar

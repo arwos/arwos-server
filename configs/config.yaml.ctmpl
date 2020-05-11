@@ -7,6 +7,10 @@ debug:
 http:
   addr: localhost:10022
 
+docker:
+  images: data/dockers
+  store:  docker.io/library
+
 sqlite:
   init: configs/default.sql
   file: data/db.sqlite

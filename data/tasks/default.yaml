@@ -1,0 +1,12 @@
+commands:
+  - type: shell:/bin/sh
+    dir: /app
+    command:
+      - ls -la
+      - df -h
+
+  - type: docker:golang113.dockerfile
+    dir: /app
+    command:
+      - ls -la
+      - df -h
