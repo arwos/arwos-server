@@ -36,14 +36,13 @@ func WrapError(err1 error, prefix string, err2 error) error {
 	}
 
 	if err1 == nil {
-		return fmt.Errorf("[%s] %s", prefix, err2.Error())
+		return fmt.Errorf("[%s]: %s", prefix, err2.Error())
 	}
 
-	return errors.WithMessagef(err1, "[%s] %s", prefix, err2.Error())
+	return errors.WithMessagef(err1, "[%s]: %s", prefix, err2.Error())
 }
 
-func LogReader(c chan []byte, r io.ReadCloser, cb func([]byte) ([]byte, error)) error {
-	defer r.Close()
+func LogReader(c chan []byte, r io.Reader, cb func([]byte) ([]byte, error)) error {
 	rd := bufio.NewReader(r)
 	for {
 		l, _, err := rd.ReadLine()

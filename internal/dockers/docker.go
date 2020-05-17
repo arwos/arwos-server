@@ -18,16 +18,13 @@
 package dockers
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/docker/docker/api/types"
-
 	"github.com/docker/docker/client"
+	"github.com/pkg/errors"
 
 	"arwos-server/internal"
 )
@@ -38,7 +35,7 @@ const (
 )
 
 type (
-	dockersRegistry map[string]*dockerClient
+	dockersRegistry map[string]DockerClientInterface
 	imagesItem      struct {
 		Tar    string
 		Origin string
@@ -57,7 +54,7 @@ type (
 func NewDockersModule(cfg *ConfigDockers) *DockersModule {
 	return &DockersModule{
 		cfg:    cfg,
-		list:   make(dockersRegistry),
+		list:   make(dockersRegistry, 0),
 		images: make(imagesList),
 	}
 }
@@ -89,55 +86,74 @@ func (dm *DockersModule) Up() error {
 	}
 
 	dm.cli, err = client.NewClientWithOpts()
+
+	//c := make(chan []byte, 100)
+	//go func() {
+	//	for d := range c {
+	//		fmt.Println(string(d))
+	//	}
+	//}()
+	//
+	//cl, er := dm.NewClient("alpine", c)
+	//if er != nil {
+	//	return errors.Wrap(er, "[New Client]")
+	//}
+	//
+	//l := []string{
+	//	`echo "hello world"`,
+	//	`nslookup google.com`,
+	//	`ping -c 10 google.com`,
+	//	`p0ng -c 10 google.com`,
+	//}
+	//var errcmd error
+	//for _, li := range l {
+	//	errcmd = internal.WrapError(errcmd, li, cl.Exec(li))
+	//}
+	//
+	//return errcmd
+
 	return err
 }
 
 func (dm *DockersModule) Down() error {
 	var err error
-	for n, i := range dm.list {
-		if er := i.Down(); er != nil {
-			err = internal.WrapError(err, "Client Down: "+n, er)
+	for uniq, i := range dm.list {
+		if er := i.Close(); er != nil {
+			err = internal.WrapError(err, "Client Down: "+uniq, er)
 		}
 	}
 	return internal.WrapError(err, "Client Close", dm.cli.Close())
 }
 
-func (dm *DockersModule) NewClient(image string, clog chan []byte) (*dockerClient, error) {
-	path, exist := dm.existImage(image)
-	if exist {
-		f, err := os.Open(path.Tar)
-		if err != nil {
-			return nil, err
-		}
-		defer f.Close()
-		resp, err := dm.cli.ImageBuild(context.TODO(), f, types.ImageBuildOptions{
-			Dockerfile: path.Name,
-			//NetworkMode: "host",
-		})
-		if err != nil {
-			return nil, err
-		}
+func (dm *DockersModule) NewClient(image string, clog chan []byte) (DockerClientInterface, error) {
+	cli := newClient(image, dm.cli, clog)
 
-		if err := internal.LogReader(clog, resp.Body, dm.decode); err != nil {
+	if path, exist := dm.existImage(image); exist {
+		if err := cli.ImageBuild(path); err != nil {
 			return nil, err
 		}
 	} else {
-		//image = dm.cfg.Docker.Store + "/" + image
-
-		resp, err := dm.cli.ImagePull(context.TODO(), image, types.ImagePullOptions{})
-		if err != nil {
-			return nil, err
-		}
-
-		if err := internal.LogReader(clog, resp, dm.decode); err != nil {
+		if err := cli.ImagePull(image); err != nil {
 			return nil, err
 		}
 	}
 
-	return newClient(image, dm.cli), nil
+	if err := cli.Create(); err != nil {
+		return nil, internal.WrapError(err, "on close", cli.Close())
+	}
+
+	cli.OnRegistering(func(s string, c DockerClientInterface) {
+		dm.list[s] = c
+	})
+
+	cli.OnDeregistering(func(s string) {
+		delete(dm.list, s)
+	})
+
+	return cli, nil
 }
 
-func (dm *DockersModule) decode(b []byte) ([]byte, error) {
+func decodeMessage(b []byte) ([]byte, error) {
 	var msg DockerMessage
 	if err := json.Unmarshal(b, &msg); err != nil {
 		return nil, err
