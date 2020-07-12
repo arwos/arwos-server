@@ -3,16 +3,16 @@
 source $(dirname $0)/commands.sh
 
 case $1 in
-runapp)
-  runapp
-  ;;
-alltests)
-  alltests
-  ;;
-onetest)
-  onetest
-  ;;
-*)
-  echo "command not supported"
-  ;;
+    envup)
+        envup;;
+    envdown)
+        envdown;;
+    alltests)
+        alltests;;
+    onetest)
+        onetest;;
+    runapp)
+        runapp;;
+    *)
+        echo "command not supported";;
 esac

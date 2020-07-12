@@ -21,7 +21,7 @@ package jsonrpc
 import (
 	"encoding/json"
 
-	"github.com/deweppro/core/pkg/provider/server/http"
+	"github.com/deweppro/core/pkg/server/http"
 )
 
 type JRPCModule struct {
@@ -42,9 +42,8 @@ func (m *JRPCModule) Down() error {
 	return nil
 }
 
-func (m *JRPCModule) Route(message *http.Message) {
+func (m *JRPCModule) Callback(message *http.Message) error {
 	message.Encode(func() (int, map[string]string, interface{}) {
-		// ---
 		var req http.JsonRPCRequest
 		er := message.Decode(func(data []byte) error {
 			return json.Unmarshal(data, &req)
@@ -52,13 +51,9 @@ func (m *JRPCModule) Route(message *http.Message) {
 		if er != nil {
 			return 500, nil, er
 		}
-
-		// ---
 		if _, ok := m.allowedMethods[req.Method]; !ok {
 			return 500, nil, errNotAllowedMethod
 		}
-
-		// ---
 		var resp json.RawMessage
 		//if err := m.Nats.Request(req.Method, &req.Params, &resp, 30); err != nil {
 		//	return 500, nil, err
@@ -68,4 +63,5 @@ func (m *JRPCModule) Route(message *http.Message) {
 			Result: resp,
 		}
 	})
+	return nil
 }

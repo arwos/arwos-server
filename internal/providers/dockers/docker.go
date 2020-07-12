@@ -23,15 +23,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"arwos-server/internal/providers"
+
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
-
-	"arwos-server/internal"
-)
-
-const (
-	imagesExt = ".dockerfile"
-	tarExt    = ".tar"
 )
 
 type (
@@ -40,6 +35,7 @@ type (
 		Tar    string
 		Origin string
 		Name   string
+		Tag    string
 	}
 	imagesList map[string]imagesItem
 
@@ -64,54 +60,25 @@ func (dm *DockersModule) Up() error {
 		if err != nil {
 			return err
 		}
-
 		if info.Mode().IsDir() ||
 			!info.Mode().IsRegular() ||
 			filepath.Ext(info.Name()) != imagesExt {
 			return nil
 		}
-
 		tarfile := path + tarExt
-		if err = internal.ToTar(path, tarfile); err != nil {
+		if err = providers.ToTar(path, tarfile); err != nil {
 			return err
 		}
-
-		dm.images[strings.TrimRight(info.Name(), imagesExt)] = imagesItem{
-			Tar: tarfile, Origin: path, Name: info.Name(),
+		tag := strings.TrimRight(info.Name(), imagesExt)
+		dm.images[tag] = imagesItem{
+			Tar: tarfile, Origin: path, Name: info.Name(), Tag: tag,
 		}
 		return nil
 	})
 	if err != nil {
 		return err
 	}
-
 	dm.cli, err = client.NewClientWithOpts()
-
-	//c := make(chan []byte, 100)
-	//go func() {
-	//	for d := range c {
-	//		fmt.Println(string(d))
-	//	}
-	//}()
-	//
-	//cl, er := dm.NewClient("alpine", c)
-	//if er != nil {
-	//	return errors.Wrap(er, "[New Client]")
-	//}
-	//
-	//l := []string{
-	//	`echo "hello world"`,
-	//	`nslookup google.com`,
-	//	`ping -c 10 google.com`,
-	//	`p0ng -c 10 google.com`,
-	//}
-	//var errcmd error
-	//for _, li := range l {
-	//	errcmd = internal.WrapError(errcmd, li, cl.Exec(li))
-	//}
-	//
-	//return errcmd
-
 	return err
 }
 
@@ -119,15 +86,20 @@ func (dm *DockersModule) Down() error {
 	var err error
 	for uniq, i := range dm.list {
 		if er := i.Close(); er != nil {
-			err = internal.WrapError(err, "Client Down: "+uniq, er)
+			err = providers.WrapError(err, "Client Down: "+uniq, er)
 		}
 	}
-	return internal.WrapError(err, "Client Close", dm.cli.Close())
+	return providers.WrapError(err, "Client Close", dm.cli.Close())
 }
 
 func (dm *DockersModule) NewClient(image string, clog chan []byte) (DockerClientInterface, error) {
 	cli := newClient(image, dm.cli, clog)
-
+	cli.OnRegistering(func(s string, c DockerClientInterface) {
+		dm.list[s] = c
+	})
+	cli.OnDeregistering(func(s string) {
+		delete(dm.list, s)
+	})
 	if path, exist := dm.existImage(image); exist {
 		if err := cli.ImageBuild(path); err != nil {
 			return nil, err
@@ -137,19 +109,9 @@ func (dm *DockersModule) NewClient(image string, clog chan []byte) (DockerClient
 			return nil, err
 		}
 	}
-
 	if err := cli.Create(); err != nil {
-		return nil, internal.WrapError(err, "on close", cli.Close())
+		return nil, providers.WrapError(err, "on close", cli.Close())
 	}
-
-	cli.OnRegistering(func(s string, c DockerClientInterface) {
-		dm.list[s] = c
-	})
-
-	cli.OnDeregistering(func(s string) {
-		delete(dm.list, s)
-	})
-
 	return cli, nil
 }
 

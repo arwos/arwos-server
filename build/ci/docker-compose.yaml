@@ -3,11 +3,10 @@ version: '3.7'
 services:
 
   app:
-    image: markus621/golang:1.1.0
+    image: markus621/golang:1.0.0
     container_name: arwos-server-appgo
-    restart: no
+    restart: always
     working_dir: /app
-    command: go run cmd/arwos-server/main.go
     ports:
       - 10021:10021
       - 10022:10022

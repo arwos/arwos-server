@@ -17,6 +17,18 @@
 
 package dockers
 
+import "github.com/pkg/errors"
+
+const (
+	cLoopCMD  = `i=0; while [ $i -le 5 ]; do sleep 10s; done`
+	imagesExt = ".dockerfile"
+	tarExt    = ".tar"
+)
+
+var (
+	errorBadExec = errors.New(`completed with error`)
+)
+
 type ConfigDockers struct {
 	Docker ConfigDockerData `yaml:"docker"`
 }

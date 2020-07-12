@@ -22,7 +22,7 @@ import (
 	"os"
 	"time"
 
-	"arwos-server/internal"
+	"arwos-server/internal/providers"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -31,21 +31,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	cLoopCMD = `i=0; while [ $i -le 5 ]; do sleep 10s; done`
-)
-
-var (
-	errorBadExec = errors.New(`completed with error`)
-)
-
 type dockerClient struct {
-	cli  *client.Client
-	cid  string
-	name string
-	uniq string
-	clog chan []byte
-
+	cli   *client.Client
+	cid   string
+	name  string
+	uniq  string
+	clog  chan []byte
 	dereg func(s string)
 }
 
@@ -73,26 +64,21 @@ func (dc *dockerClient) Create() error {
 		return errors.Wrap(err, "ContainerCreate: "+dc.name)
 	}
 	dc.cid = resp.ID
-
 	return dc.cli.ContainerStart(context.TODO(), dc.cid, types.ContainerStartOptions{})
 }
 
 func (dc *dockerClient) Close() error {
 	var err error
-
 	if len(dc.cid) > 0 {
-		timeout := 10 * time.Second
+		timeout := 0 * time.Second
 		if er := dc.cli.ContainerStop(context.TODO(), dc.cid, &timeout); er != nil {
-			err = internal.WrapError(err, "ContainerStop: "+dc.name, er)
+			err = providers.WrapError(err, "ContainerStop: "+dc.name, er)
 		}
-
 		if er := dc.cli.ContainerRemove(context.TODO(), dc.cid, types.ContainerRemoveOptions{}); er != nil {
-			err = internal.WrapError(err, "ContainerRemove: "+dc.name, er)
+			err = providers.WrapError(err, "ContainerRemove: "+dc.name, er)
 		}
 	}
-
 	dc.dereg(dc.uniq)
-
 	return err
 }
 
@@ -102,31 +88,25 @@ func (dc *dockerClient) Exec(cmd string) error {
 		AttachStdout: true,
 		Cmd:          []string{"sh", "-ce", cmd},
 	}
-
 	resp, err1 := dc.cli.ContainerExecCreate(context.TODO(), dc.cid, ec)
 	if err1 != nil {
 		return errors.Wrap(err1, "ContainerExecCreate: "+dc.name)
 	}
-
 	hr, err2 := dc.cli.ContainerExecAttach(context.TODO(), resp.ID, types.ExecStartCheck{})
 	if err2 != nil {
 		return errors.Wrap(err2, "ContainerExecAttach: "+dc.name)
 	}
 	defer hr.Close()
-
-	if err := internal.LogReader(dc.clog, hr.Reader, nil); err != nil {
+	if err := providers.LogReader(dc.clog, hr.Reader, nil); err != nil {
 		return errors.Wrap(err, "read data from ContainerExecAttach")
 	}
-
 	eci, err3 := dc.cli.ContainerExecInspect(context.TODO(), resp.ID)
 	if err3 != nil {
 		return errors.Wrap(err2, "ContainerExecInspect: "+dc.name)
 	}
-
 	if eci.ExitCode > 0 {
 		return errors.Wrap(errorBadExec, cmd)
 	}
-
 	return nil
 }
 
@@ -138,15 +118,14 @@ func (dc *dockerClient) ImageBuild(img imagesItem) error {
 	defer f.Close()
 	resp, err := dc.cli.ImageBuild(context.TODO(), f, types.ImageBuildOptions{
 		Dockerfile: img.Name,
+		Tags:       []string{img.Tag},
 	})
 	if err != nil {
 		return errors.Wrap(err, "error on ImageBuild")
 	}
-
-	if err := internal.LogReader(dc.clog, resp.Body, decodeMessage); err != nil {
+	if err := providers.LogReader(dc.clog, resp.Body, decodeMessage); err != nil {
 		return errors.Wrap(err, "read data from ImageBuild")
 	}
-
 	return resp.Body.Close()
 }
 
@@ -155,8 +134,7 @@ func (dc *dockerClient) ImagePull(img string) error {
 	if err != nil {
 		return errors.Wrap(err, "error on ImagePull")
 	}
-
-	if err := internal.LogReader(dc.clog, resp, decodeMessage); err != nil {
+	if err := providers.LogReader(dc.clog, resp, decodeMessage); err != nil {
 		return errors.Wrap(err, "read data from ImagePull")
 	}
 	return resp.Close()

@@ -19,7 +19,9 @@
 package jsonrpc
 
 import (
-	"github.com/deweppro/core/pkg/provider/server/http"
+	http2 "net/http"
+
+	"github.com/deweppro/core/pkg/server/http"
 )
 
 type HTTPModule struct {
@@ -38,13 +40,7 @@ func NewHTTPModule(cfg *ConfigHttp, j *JRPCModule) *HTTPModule {
 
 func (h *HTTPModule) Up() error {
 	h.httpsrv.SetAddr(h.cfg.Http.Addr)
-
-	h.httpsrv.Route("POST", "/rpc", &http.HttpHandlerItem{
-		Call:       h.jrpc.Route,
-		Middelware: h.middelware,
-		Formatter:  http.JsonRPCFormatter,
-	})
-
+	h.httpsrv.Route(h)
 	return h.httpsrv.Up()
 }
 
@@ -52,6 +48,20 @@ func (h *HTTPModule) Down() error {
 	return h.httpsrv.Down()
 }
 
-func (h *HTTPModule) middelware(message *http.Message) http.Success {
-	return true
+func (h *HTTPModule) Handlers() []http.CallHandler {
+	return []http.CallHandler{
+		{Method: http2.MethodGet, Path: "/healthcheck", Call: h.jrpc.Callback},
+	}
+}
+
+func (h *HTTPModule) Formatter() http.FMT {
+	return func(m *http.Message, code int, headers map[string]string, body interface{}) {
+
+	}
+}
+
+func (h *HTTPModule) Middelware() http.FN {
+	return func(message *http.Message) error {
+		return nil
+	}
 }

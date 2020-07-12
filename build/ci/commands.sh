@@ -2,6 +2,15 @@
 
 source $(dirname $0)/vars.sh
 
+envup(){
+  envdown
+  ${dockercmd} up -d
+}
+
+envdown(){
+  ${dockercmd} down
+}
+
 alltests() {
   ${dockercmd} exec app go test ./...
 }
@@ -11,7 +20,5 @@ onetest() {
 }
 
 runapp() {
-  ${dockercmd} down
-  ${dockercmd} up
-  ${dockercmd} down
+  ${dockercmd} exec app go run cmd/arwos-server/main.go
 }

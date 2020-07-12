@@ -20,14 +20,12 @@ package main
 import (
 	"flag"
 
-	"arwos-server/internal/dockers"
+	"arwos-server/internal/providers/dockers"
+	"arwos-server/internal/providers/jsonrpc"
 
-	"github.com/deweppro/core/pkg/provider/db/sqlite"
-
-	"arwos-server/internal/jsonrpc"
-
-	"github.com/deweppro/core/pkg/app"
-	"github.com/deweppro/core/pkg/provider/debug"
+	"github.com/deweppro/core/pkg/db/sqlite"
+	"github.com/deweppro/core/pkg/debug"
+	"github.com/deweppro/go-app/pkg/app"
 )
 
 var cfile = flag.String("config", "./configs/config.yaml", "path to config file")
@@ -36,15 +34,14 @@ var pidfile = flag.String("pid", "/tmp/arwos-server.pid", "path to pid file")
 func main() {
 	flag.Parse()
 
-	app.New(
-		*cfile,
-		app.NewInterfaces().Add(
+	app.New(*cfile).
+		ConfigModels(
 			&debug.ConfigDebug{},
 			&sqlite.ConfigSQLite{},
 			&jsonrpc.ConfigHttp{},
 			&dockers.ConfigDockers{},
-		),
-		app.NewInterfaces().Add(
+		).
+		Modules(
 			// providers
 			debug.New,
 			sqlite.MustNew,
@@ -52,6 +49,5 @@ func main() {
 			jsonrpc.NewHTTPModule,
 			jsonrpc.NewJRPCModule,
 			dockers.NewDockersModule,
-		),
-	).PidFile(*pidfile).Run()
+		).PidFile(*pidfile).Run()
 }
