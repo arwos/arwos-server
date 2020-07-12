@@ -38,6 +38,7 @@ type ConfigDockerData struct {
 	Store  string `yaml:"store"`
 }
 
+//easyjson:json
 type DockerMessage struct {
 	Stream string `json:"stream,omitempty"`
 	Status string `json:"status,omitempty"`

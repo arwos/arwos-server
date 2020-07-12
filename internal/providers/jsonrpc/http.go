@@ -50,14 +50,12 @@ func (h *HTTPModule) Down() error {
 
 func (h *HTTPModule) Handlers() []http.CallHandler {
 	return []http.CallHandler{
-		{Method: http2.MethodGet, Path: "/healthcheck", Call: h.jrpc.Callback},
+		{Method: http2.MethodPost, Path: "/rpc", Call: h.jrpc.CallBack},
 	}
 }
 
 func (h *HTTPModule) Formatter() http.FMT {
-	return func(m *http.Message, code int, headers map[string]string, body interface{}) {
-
-	}
+	return http.JsonRPCFormatter
 }
 
 func (h *HTTPModule) Middelware() http.FN {

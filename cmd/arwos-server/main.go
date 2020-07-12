@@ -20,6 +20,8 @@ package main
 import (
 	"flag"
 
+	"arwos-server/internal/modules/ping"
+
 	"arwos-server/internal/providers/dockers"
 	"arwos-server/internal/providers/jsonrpc"
 
@@ -45,9 +47,10 @@ func main() {
 			// providers
 			debug.New,
 			sqlite.MustNew,
-			// modules
 			jsonrpc.NewHTTPModule,
 			jsonrpc.NewJRPCModule,
 			dockers.NewDockersModule,
+			// controllers
+			ping.NewController,
 		).PidFile(*pidfile).Run()
 }
