@@ -21,20 +21,21 @@ package jsonrpc
 import (
 	"encoding/json"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/deweppro/core/pkg/server/http"
+	"github.com/sirupsen/logrus"
 )
 
-type InjectableInterface interface {
-	Method() string
-	Model() json.Unmarshaler
-	CallBack(interface{}) (json.Marshaler, error)
-}
+type (
+	InjectableInterface interface {
+		Method() string
+		Model() json.Unmarshaler
+		CallBack(interface{}) (json.Marshaler, error)
+	}
 
-type JRPCModule struct {
-	allowedMethods map[string]InjectableInterface
-}
+	JRPCModule struct {
+		allowedMethods map[string]InjectableInterface
+	}
+)
 
 func NewJRPCModule() *JRPCModule {
 	return &JRPCModule{

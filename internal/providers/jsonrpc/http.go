@@ -25,40 +25,40 @@ import (
 )
 
 type HTTPModule struct {
-	jrpc    *JRPCModule
-	cfg     *ConfigHttp
-	httpsrv *http.Server
+	jrpc   *JRPCModule
+	cfg    *ConfigHttp
+	server *http.Server
 }
 
 func NewHTTPModule(cfg *ConfigHttp, j *JRPCModule) *HTTPModule {
 	return &HTTPModule{
-		jrpc:    j,
-		cfg:     cfg,
-		httpsrv: http.New(),
+		jrpc:   j,
+		cfg:    cfg,
+		server: http.NewServer(),
 	}
 }
 
 func (h *HTTPModule) Up() error {
-	h.httpsrv.SetAddr(h.cfg.Http.Addr)
-	h.httpsrv.Route(h)
-	return h.httpsrv.Up()
+	h.server.SetAddr(h.cfg.Http.Addr)
+	h.server.AddRoute(h)
+	return h.server.Up()
 }
 
 func (h *HTTPModule) Down() error {
-	return h.httpsrv.Down()
+	return h.server.Down()
 }
 
-func (h *HTTPModule) Handlers() []http.CallHandler {
-	return []http.CallHandler{
+func (h *HTTPModule) Handlers() []http.Handler {
+	return []http.Handler{
 		{Method: http2.MethodPost, Path: "/rpc", Call: h.jrpc.CallBack},
 	}
 }
 
-func (h *HTTPModule) Formatter() http.FMT {
+func (h *HTTPModule) Formatter() http.FormatterFunc {
 	return http.JsonRPCFormatter
 }
 
-func (h *HTTPModule) Middelware() http.FN {
+func (h *HTTPModule) Middleware() http.CallFunc {
 	return func(message *http.Message) error {
 		return nil
 	}

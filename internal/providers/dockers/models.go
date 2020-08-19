@@ -17,6 +17,8 @@
 
 package dockers
 
+//go:generate easyjson
+
 import "github.com/pkg/errors"
 
 const (
@@ -29,14 +31,16 @@ var (
 	errorBadExec = errors.New(`completed with error`)
 )
 
-type ConfigDockers struct {
-	Docker ConfigDockerData `yaml:"docker"`
-}
+type (
+	ConfigDockers struct {
+		Docker ConfigDockerData `yaml:"docker"`
+	}
 
-type ConfigDockerData struct {
-	Images string `yaml:"images"`
-	Store  string `yaml:"store"`
-}
+	ConfigDockerData struct {
+		Images string `yaml:"images"`
+		Store  string `yaml:"store"`
+	}
+)
 
 //easyjson:json
 type DockerMessage struct {
@@ -45,14 +49,14 @@ type DockerMessage struct {
 	Error  string `json:"error,omitempty"`
 }
 
-func (m DockerMessage) ByteValue() []byte {
-	return []byte(m.Value())
+func (msg DockerMessage) ByteValue() []byte {
+	return []byte(msg.Value())
 }
 
-func (m DockerMessage) Value() string {
-	return m.Stream + m.Status + m.Error
+func (msg DockerMessage) Value() string {
+	return msg.Stream + msg.Status + msg.Error
 }
 
-func (m DockerMessage) IsError() bool {
-	return len(m.Error) > 0
+func (msg DockerMessage) IsError() bool {
+	return len(msg.Error) > 0
 }

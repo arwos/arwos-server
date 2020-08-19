@@ -17,12 +17,15 @@
 
 package ping
 
-//easyjson:json
-type Input struct {
-	Text string `json:"text"`
-}
+//go:generate easyjson
 
 //easyjson:json
-type Output struct {
-	Text string `json:"text"`
-}
+type (
+	Input struct {
+		Text string `json:"text"`
+	}
+
+	Output struct {
+		Text string `json:"text"`
+	}
+)

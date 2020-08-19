@@ -31,19 +31,21 @@ import (
 	"github.com/pkg/errors"
 )
 
-type dockerClient struct {
-	cli   *client.Client
-	cid   string
-	name  string
-	uniq  string
-	clog  chan []byte
-	dereg func(s string)
-}
+type (
+	dockerClient struct {
+		cli   *client.Client
+		cid   string
+		name  string
+		uniq  string
+		clog  chan []byte
+		dereg func(s string)
+	}
 
-type DockerClientInterface interface {
-	Close() error
-	Exec(cmd string) error
-}
+	DockerClientInterface interface {
+		Close() error
+		Exec(cmd string) error
+	}
+)
 
 func newClient(name string, cli *client.Client, clog chan []byte) *dockerClient {
 	return &dockerClient{
@@ -140,10 +142,10 @@ func (dc *dockerClient) ImagePull(img string) error {
 	return resp.Close()
 }
 
-func (dc *dockerClient) OnRegistering(fn func(s string, c DockerClientInterface)) {
-	fn(dc.uniq, dc)
+func (dc *dockerClient) OnRegistering(call func(s string, c DockerClientInterface)) {
+	call(dc.uniq, dc)
 }
 
-func (dc *dockerClient) OnDeregistering(fn func(s string)) {
-	dc.dereg = fn
+func (dc *dockerClient) OnUnregistering(call func(s string)) {
+	dc.dereg = call
 }

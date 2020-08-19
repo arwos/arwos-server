@@ -21,3 +21,6 @@ ci: env_down env_up tests env_down
 
 localapp:
 	go run cmd/arwos-server/main.go
+
+codegen:
+	go generate -v ./...

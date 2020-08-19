@@ -97,7 +97,7 @@ func (dm *DockersModule) NewClient(image string, clog chan []byte) (DockerClient
 	cli.OnRegistering(func(s string, c DockerClientInterface) {
 		dm.list[s] = c
 	})
-	cli.OnDeregistering(func(s string) {
+	cli.OnUnregistering(func(s string) {
 		delete(dm.list, s)
 	})
 	if path, exist := dm.existImage(image); exist {

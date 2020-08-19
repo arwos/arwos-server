@@ -21,13 +21,15 @@ import (
 	"errors"
 )
 
-type ConfigHttp struct {
-	Http ConfigHttpData `yaml:"http"`
-}
+type (
+	ConfigHttp struct {
+		Http ConfigHttpData `yaml:"http"`
+	}
 
-type ConfigHttpData struct {
-	Addr string `yaml:"addr"`
-}
+	ConfigHttpData struct {
+		Addr string `yaml:"addr"`
+	}
+)
 
 var (
 	errNotAllowedMethod = errors.New("method not found")
